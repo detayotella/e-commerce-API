@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Role enumeration to define user roles in the system (e.g., ADMIN, USER)
+enum Role {
+  ADMIN
+  USER
+}
+
+enum OrderEventStatus {
+  PENDING 
+  ACCEPTED 
+  OUT_FOR_DELIVERY 
+  DELIVERED 
+  CANCELLED 
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  name String 
+  email String @unique 
+  password String 
+  role Role @default(USER) // Defines the role of the user (default is USER)
+  defaultShippingAddress Int? // Optional: Stores the default shipping address ID for the user
+  defaultBillingAddress Int? // Optional: Stores the default billing address ID for the user
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address Address[] // One-to-Many: A user can have multiple addresses
+  cartItems CartItem[] // One-to-Many: A user can have multiple items in their cart
+  Orders Order[] // One-to-Many: A user can place multiple orders
+
+  @@map("users")
+}
+
+model Address {
+  id Int @id @default(autoincrement())
+  lineOne String 
+  lineTwo String? 
+  city String 
+  country String 
+  pincode String 
+  userId Int // Foreign key linking this address to a user
+  user User @relation(fields: [userId], references: [id]) // Many-to-One: Each address belongs to one user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+  name String 
+  description String 
+  price Decimal 
+  tags  String 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+
+  cartItems CartItem[] // One-to-Many: A product can appear in multiple cart items
+  orders OrderProduct[] // One-to-Many: A product can appear in multiple orders via the OrderProduct model
+
+  @@map("products")
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+  userId Int // Foreign key linking the cart item to a user
+  user User @relation(fields: [userId], references: [id]) // Many-to-One: Each cart item belongs to one user
+  productId Int // Foreign key linking the cart item to a product
+  product Product @relation(fields: [productId], references: [id]) // Many-to-One: Each cart item is associated with one product
+  quantity Int // The quantity of the product in the cart
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cart_items")
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+  userId Int // Foreign key linking the order to a user
+  user User @relation(fields: [userId], references: [id]) // Many-to-One: Each order belongs to one user
+  netAmount Decimal // The total amount of the order
+  address String // The address where the order is to be delivered
+  status OrderEventStatus @default(PENDING)
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt
+
+  products OrderProduct[] // One-to-Many: An order can have multiple products through the OrderProduct model
+
+  // One-to-Many relationship: An order can have multiple events, tracking its lifecycle or history.
+  // Each event in the `OrderEvent` model is linked to a single order, providing a log or audit trail for actions
+  // (e.g., order placed, shipped, delivered, cancelled)
+  events OrderEvent[] 
+
+  @@map("orders")
+}
+
+model OrderProduct {
+  id Int @id @default(autoincrement())
+  orderId Int // Foreign key linking the product to an order
+  order Order @relation(fields: [orderId], references: [id]) // Many-to-One: Each product is part of one order
+  productId Int // Foreign key linking the product to the order
+  product Product @relation(fields: [productId], references: [id]) // Many-to-One: Each product is linked to one product entity
+  quantity Int // The quantity of this product in the order
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("order_products")
+}
+
+model OrderEvent {
+  id Int @id @default(autoincrement())
+  // Foreign key linking this event to a specific order
+  orderId Int 
+  // Many-to-One relationship: Each event is linked to a single order
+  order Order @relation(fields: [orderId], references: [id])
+  status OrderEventStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  @@map("order_events")
+}

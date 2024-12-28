@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const errrorHandlers_1 = require("../errrorHandlers");
+const authMiddleware_1 = __importDefault(require("../middlewares/authMiddleware"));
+const ordersController_1 = require("../controllers/ordersController");
+const adminMiddleware_1 = __importDefault(require("../middlewares/adminMiddleware"));
+const ordersController_2 = require("../controllers/ordersController");
+const orderRoutes = (0, express_1.Router)();
+orderRoutes.post("/", [authMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_1.createOrder));
+orderRoutes.get("/", [authMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_2.listOrders));
+orderRoutes.put("/:id/cancel", [authMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_1.cancelOrder));
+orderRoutes.get("/index", [authMiddleware_1.default, adminMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_2.listOrders));
+orderRoutes.get("/users/:id", [authMiddleware_1.default, adminMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_2.listUserOrders));
+orderRoutes.put("/:id/status", [authMiddleware_1.default, adminMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_2.changeStatus));
+orderRoutes.get("/:id", [authMiddleware_1.default], (0, errrorHandlers_1.errorHandler)(ordersController_1.getOrderById));
+exports.default = orderRoutes;
